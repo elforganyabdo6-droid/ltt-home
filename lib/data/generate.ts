@@ -17,9 +17,7 @@ import {
   DATASET_SIZE,
 } from "../constants";
 import {
-  PACKAGES,
   PACKAGE_PRICE_LYD,
-  REGIONS,
   SUBSCRIPTION_TYPES,
   type AccountStatus,
   type CustomerType,

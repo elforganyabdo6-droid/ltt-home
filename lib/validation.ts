@@ -50,6 +50,12 @@ export interface CustomerFilters {
   usage?: UsageLevel;
   status?: AccountStatus;
   risk?: RiskLevel;
+  /**
+   * Restrict to medium-or-high risk. A distinct flag rather than a `risk` value
+   * because "at risk" spans two bands, and filtering the page client-side after
+   * the fact would report a total that does not match the rows shown.
+   */
+  atRisk?: boolean;
   /** Free-text search over customer id and name. */
   q?: string;
 }
@@ -103,8 +109,22 @@ export function parseFilters(params: URLSearchParams): CustomerFilters {
     usage: optionalEnum(params, "usage", USAGE_LEVELS),
     status: optionalEnum(params, "status", ACCOUNT_STATUSES),
     risk: optionalEnum(params, "risk", RISK_LEVELS),
+    atRisk: optionalBoolean(params, "atRisk"),
     q: optionalSearch(params),
   };
+}
+
+/** Accepts only "true"/"false" — a typo must not silently read as false. */
+function optionalBoolean(
+  params: URLSearchParams,
+  field: string,
+): boolean | undefined {
+  const raw = params.get(field);
+  if (raw === null || raw === "" || raw === "all") return undefined;
+  if (raw !== "true" && raw !== "false") {
+    throw new ValidationError(field, `الحقل ${field} يجب أن يكون true أو false.`);
+  }
+  return raw === "true";
 }
 
 export interface Pagination {

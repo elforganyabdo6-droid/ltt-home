@@ -1,26 +1,294 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+/* ============================================================================
+   LTT Churn Dashboard — design tokens
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+   Structure follows one rule: the bare `:root` block defines the COMPLETE light
+   palette, and the dark blocks redefine only token *values*. No component may
+   declare a colour that exists solely inside a media query or a [data-theme]
+   block, or it renders one theme's ink on the other theme's ground.
+
+   Three theme states are handled, not two:
+     - `data-theme="light"` / `"dark"`  explicit viewer choice
+     - no attribute                     system preference via prefers-color-scheme
+   ============================================================================ */
+
+:root {
+  color-scheme: light;
+
+  /* --- LTT brand ------------------------------------------------------- */
+  --ltt-navy: #0b1f33;
+  --ltt-primary: #0066cc;
+  --ltt-accent: #00aeef;
+
+  /* --- surfaces -------------------------------------------------------- */
+  /* Neutrals carry a slight blue bias toward the brand rather than being a
+     dead grey, so the chrome reads as chosen rather than defaulted. */
+  --ground: #eef2f7;
+  --surface: #ffffff;
+  --surface-sunken: #f3f6fa;
+  --surface-raised: #ffffff;
+
+  /* --- ink ------------------------------------------------------------- */
+  --ink: #0b1f33;
+  --ink-secondary: #4c5f72;
+  --ink-muted: #8697a8;
+  --ink-on-dark: #e8f1fb;
+
+  /* --- lines ----------------------------------------------------------- */
+  --border: rgb(11 31 51 / 0.12);
+  --border-strong: rgb(11 31 51 / 0.22);
+  --gridline: #e4eaf1;
+
+  /* --- interactive ----------------------------------------------------- */
+  --primary: #0066cc;
+  --primary-hover: #004c99;
+  --primary-tint: #e5f0fd;
+  --accent: #0090c4;
+  --accent-tint: #e2f7fe;
+  --focus-ring: #00aeef;
+
+  /* --- status ---------------------------------------------------------- */
+  /* Validated with the dataviz palette checker against #ffffff, all pairs:
+     CVD ΔE 10.3 (target ≥8), normal-vision ΔE 20.1 (floor ≥15).
+     `warning` sits at 2.64:1 contrast, below 3:1 — permitted because risk is
+     never encoded by colour alone: every badge carries its Arabic label. */
+  --good: #00806a;
+  --good-tint: #e0f5f0;
+  --good-ink: #00614f;
+
+  --warning: #d99000;
+  --warning-tint: #fdf3e0;
+  --warning-ink: #8a5d00;
+
+  --critical: #c73a32;
+  --critical-tint: #fbe9e7;
+  --critical-ink: #a02b24;
+
+  /* --- sequential ramp (single hue, light → dark) ----------------------- */
+  /* Ordinal-validated: monotone lightness, adjacent ΔL ≥ 0.06, light end
+     2.11:1 against the surface, hue spread 3°. */
+  --seq-1: #86b6ef;
+  --seq-2: #5b96e0;
+  --seq-3: #3576c6;
+  --seq-4: #1d569f;
+  --seq-5: #0d3f78;
+
+  /* --- elevation ------------------------------------------------------- */
+  --shadow-card: 0 1px 2px rgb(11 31 51 / 0.06), 0 10px 28px -14px rgb(11 31 51 / 0.18);
+  --shadow-drawer: -18px 0 40px -20px rgb(11 31 51 / 0.35);
 }
 
 @media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+
+    --ground: #0a1420;
+    --surface: #101d2e;
+    --surface-sunken: #0c1826;
+    --surface-raised: #16273c;
+
+    --ink: #eef4fa;
+    --ink-secondary: #aabccd;
+    --ink-muted: #7c92a6;
+    --ink-on-dark: #e8f1fb;
+
+    --border: rgb(255 255 255 / 0.11);
+    --border-strong: rgb(255 255 255 / 0.22);
+    --gridline: #1e2f45;
+
+    --primary: #4c96e8;
+    --primary-hover: #6aa9ee;
+    --primary-tint: #16273c;
+    --accent: #29c2ff;
+    --accent-tint: #103244;
+    --focus-ring: #29c2ff;
+
+    /* Re-stepped for the dark surface (#101d2e), not inverted: all pairs
+       CVD ΔE 8.9, normal-vision ΔE 23.0, every step ≥3:1 on the ground. The
+       amber is deliberately brighter than the tonal band — a warning should
+       draw the eye, and the extra brightness is what buys the CVD separation. */
+    --good: #0d9070;
+    --good-tint: #0e2b26;
+    --good-ink: #43c9a8;
+
+    --warning: #cfa50a;
+    --warning-tint: #302713;
+    --warning-ink: #e8c04a;
+
+    --critical: #cf4436;
+    --critical-tint: #331715;
+    --critical-ink: #f0827a;
+
+    --seq-1: #16273c;
+    --seq-2: #24487a;
+    --seq-3: #3576c6;
+    --seq-4: #6aa9ee;
+    --seq-5: #a9d2fb;
+
+    --shadow-card: 0 1px 2px rgb(0 0 0 / 0.3), 0 10px 28px -14px rgb(0 0 0 / 0.5);
+    --shadow-drawer: -18px 0 40px -20px rgb(0 0 0 / 0.55);
   }
 }
 
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  --ground: #0a1420;
+  --surface: #101d2e;
+  --surface-sunken: #0c1826;
+  --surface-raised: #16273c;
+
+  --ink: #eef4fa;
+  --ink-secondary: #aabccd;
+  --ink-muted: #7c92a6;
+  --ink-on-dark: #e8f1fb;
+
+  --border: rgb(255 255 255 / 0.11);
+  --border-strong: rgb(255 255 255 / 0.22);
+  --gridline: #1e2f45;
+
+  --primary: #4c96e8;
+  --primary-hover: #6aa9ee;
+  --primary-tint: #16273c;
+  --accent: #29c2ff;
+  --accent-tint: #103244;
+  --focus-ring: #29c2ff;
+
+  --good: #0d9070;
+  --good-tint: #0e2b26;
+  --good-ink: #43c9a8;
+
+  --warning: #cfa50a;
+  --warning-tint: #302713;
+  --warning-ink: #e8c04a;
+
+  --critical: #cf4436;
+  --critical-tint: #331715;
+  --critical-ink: #f0827a;
+
+  --seq-1: #16273c;
+  --seq-2: #24487a;
+  --seq-3: #3576c6;
+  --seq-4: #6aa9ee;
+  --seq-5: #a9d2fb;
+
+  --shadow-card: 0 1px 2px rgb(0 0 0 / 0.3), 0 10px 28px -14px rgb(0 0 0 / 0.5);
+  --shadow-drawer: -18px 0 40px -20px rgb(0 0 0 / 0.55);
+}
+
+/* Expose the tokens to Tailwind so utilities such as `bg-surface`,
+   `text-ink-muted` and `border-border` resolve. */
+@theme inline {
+  --font-sans: var(--font-cairo), "Segoe UI", Tahoma, sans-serif;
+
+  --color-ground: var(--ground);
+  --color-surface: var(--surface);
+  --color-surface-sunken: var(--surface-sunken);
+  --color-surface-raised: var(--surface-raised);
+
+  --color-ink: var(--ink);
+  --color-ink-secondary: var(--ink-secondary);
+  --color-ink-muted: var(--ink-muted);
+  --color-ink-on-dark: var(--ink-on-dark);
+
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-gridline: var(--gridline);
+
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-tint: var(--primary-tint);
+  --color-accent: var(--accent);
+  --color-accent-tint: var(--accent-tint);
+
+  --color-good: var(--good);
+  --color-good-tint: var(--good-tint);
+  --color-good-ink: var(--good-ink);
+  --color-warning: var(--warning);
+  --color-warning-tint: var(--warning-tint);
+  --color-warning-ink: var(--warning-ink);
+  --color-critical: var(--critical);
+  --color-critical-tint: var(--critical-tint);
+  --color-critical-ink: var(--critical-ink);
+
+  --color-ltt-navy: var(--ltt-navy);
+  --color-ltt-primary: var(--ltt-primary);
+  --color-ltt-accent: var(--ltt-accent);
+}
+
+/* ============================================================================
+   Base
+   ============================================================================ */
+
+* {
+  border-color: var(--border);
+}
+
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  /* The token must be explicit: an unpainted body borrows the host's ground and
+     can end up light-on-light or dark-on-dark. */
+  background: var(--ground);
+  color: var(--ink);
+  font-family: var(--font-cairo), "Segoe UI", Tahoma, sans-serif;
+  font-size: 14px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4 {
+  text-wrap: balance;
+}
+
+/* Digits in columns must align; standalone display figures must not, because
+   tabular figures give every digit a zero's width and look loose when large. */
+.tnum {
+  font-variant-numeric: tabular-nums;
+}
+
+:where(button, a, select, input, [tabindex]):focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: 999px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* ============================================================================
+   Print — reports are exported to PDF through the browser's print dialog
+   ============================================================================ */
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  body {
+    background: #fff;
+    color: #000;
+  }
+  .print-full {
+    box-shadow: none !important;
+    border: 1px solid #ccc !important;
+  }
 }

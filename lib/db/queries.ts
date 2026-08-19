@@ -41,6 +41,23 @@ import {
 
 const JOIN = `FROM customers c JOIN churn_predictions p ON p.customer_id = c.id`;
 
+/**
+ * Assert the shape of a SQL result row.
+ *
+ * `node:sqlite` types every row as `Record<string, SQLOutputValue>` because it
+ * cannot know a query's projection. These two helpers mark the one place where a
+ * runtime shape is taken on trust: the SELECT list and the row interface beside
+ * it must be kept in step by hand, and changing one without the other is exactly
+ * the bug this makes visible rather than hides.
+ */
+function asRow<T>(row: unknown): T {
+  return row as T;
+}
+
+function asRows<T>(rows: unknown): T[] {
+  return rows as T[];
+}
+
 /** Tenure band predicates. Fixed SQL — no request value reaches the text. */
 const TENURE_SQL: Record<TenureBand, string> = {
   "0-6": "c.tenure_months < 6",
@@ -104,6 +121,9 @@ function buildWhere(filters: CustomerFilters): WhereClause {
     conditions.push("p.risk_level = ?");
     params.push(filters.risk);
   }
+  if (filters.atRisk) {
+    conditions.push("p.risk_level <> 'low'");
+  }
   if (filters.tenure) {
     conditions.push(`(${TENURE_SQL[filters.tenure]})`);
   }
@@ -135,9 +155,10 @@ interface KpiRow {
 export function getKpis(filters: CustomerFilters): Kpis {
   const where = buildWhere(filters);
 
-  const row = getDb()
-    .prepare(
-      `SELECT
+  const row = asRow<KpiRow>(
+    getDb()
+      .prepare(
+        `SELECT
          COUNT(*)                                                              AS totalCustomers,
          SUM(CASE WHEN p.risk_level <> 'low' THEN 1 ELSE 0 END)                AS atRiskCustomers,
          SUM(CASE WHEN p.risk_level =  'high' THEN 1 ELSE 0 END)               AS highRiskCustomers,
@@ -148,8 +169,9 @@ export function getKpis(filters: CustomerFilters): Kpis {
          AVG(p.confidence)                                                     AS averageConfidencePct
        ${JOIN}
        ${where.sql}`,
-    )
-    .get(...where.params) as KpiRow;
+      )
+      .get(...where.params),
+  );
 
   // Aggregates are NULL over an empty set — a filter combination with no matches
   // is normal, so coalesce rather than treating it as an error.
@@ -267,15 +289,17 @@ export function listCustomers(
   const offset = (page - 1) * pagination.pageSize;
 
   // sort.column and sort.direction come from allowlist maps, never the request.
-  const rows = db
-    .prepare(
-      `SELECT ${SELECT_COLUMNS}
-       ${JOIN}
-       ${where.sql}
-       ORDER BY ${sort.column} ${sort.direction}, c.id ASC
-       LIMIT ? OFFSET ?`,
-    )
-    .all(...where.params, pagination.pageSize, offset) as CustomerJoinRow[];
+  const rows = asRows<CustomerJoinRow>(
+    db
+      .prepare(
+        `SELECT ${SELECT_COLUMNS}
+         ${JOIN}
+         ${where.sql}
+         ORDER BY ${sort.column} ${sort.direction}, c.id ASC
+         LIMIT ? OFFSET ?`,
+      )
+      .all(...where.params, pagination.pageSize, offset),
+  );
 
   return {
     rows: rows.map(mapRow),
@@ -429,14 +453,16 @@ export function listAllForExport(
   sort: SortSpec,
 ): CustomerWithPrediction[] {
   const where = buildWhere(filters);
-  const rows = getDb()
-    .prepare(
-      `SELECT ${SELECT_COLUMNS}
-       ${JOIN}
-       ${where.sql}
-       ORDER BY ${sort.column} ${sort.direction}, c.id ASC`,
-    )
-    .all(...where.params) as CustomerJoinRow[];
+  const rows = asRows<CustomerJoinRow>(
+    getDb()
+      .prepare(
+        `SELECT ${SELECT_COLUMNS}
+         ${JOIN}
+         ${where.sql}
+         ORDER BY ${sort.column} ${sort.direction}, c.id ASC`,
+      )
+      .all(...where.params),
+  );
 
   return rows.map(mapRow);
 }
