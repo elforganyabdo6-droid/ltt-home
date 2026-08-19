@@ -1,0 +1,13 @@
+# Build output — Vercel builds the project itself; uploading a local .next both
+# wastes upload time and risks shipping a stale artifact. The CLI warns about it
+# explicitly ("You should not upload the `.next` directory").
+.next
+.vercel
+
+# Local database. Never deployed: serverless filesystems are read-only, so the
+# app builds its own in-memory database there. See lib/db/README.md.
+data
+
+# Local tooling and docs that the runtime does not need.
+node_modules
+*.log

@@ -43,3 +43,5 @@ next-env.d.ts
 # local database (generated, synthetic)
 /data/*.db
 /data/*.db-journal
+
+.vercel
