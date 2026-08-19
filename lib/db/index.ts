@@ -7,15 +7,15 @@
  */
 
 import { DatabaseSync } from "node:sqlite";
-import { mkdirSync, readFileSync } from "node:fs";
+import { mkdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 
 import { DATASET_SEED, DATASET_SIZE } from "../constants";
 import { generateCustomers, generateMonthlyChurnActuals } from "../data/generate";
 import { churnModel } from "../model";
+import { SCHEMA_SQL } from "./schema";
 
 const DB_PATH = join(process.cwd(), "data", "churn.db");
-const SCHEMA_PATH = join(process.cwd(), "lib", "db", "schema.sql");
 
 /**
  * Next.js dev mode re-evaluates modules on hot reload. Caching the handle on
@@ -25,17 +25,55 @@ const globalForDb = globalThis as unknown as {
   __lttChurnDb?: DatabaseSync;
 };
 
+/**
+ * Where the database lives.
+ *
+ * Serverless hosts (Vercel among them) give the function a read-only
+ * filesystem, so a file-backed database cannot be created there at all. The
+ * dataset is fully deterministic — same seed, same 640 subscribers — so an
+ * in-memory database seeded at cold start is equivalent for reads, and every
+ * instance holds identical data.
+ *
+ * Locally the file is kept, because persistence across a restart is something
+ * the training labs need to be able to observe.
+ *
+ * Override with `LTT_DB_MODE=file` or `LTT_DB_MODE=memory`.
+ */
+function resolveDbLocation(): { location: string; persistent: boolean } {
+  const override = process.env.LTT_DB_MODE;
+
+  const persistent =
+    override === "file"
+      ? true
+      : override === "memory"
+        ? false
+        : // No override: anything running on a serverless platform is in-memory.
+          !process.env.VERCEL && !process.env.AWS_LAMBDA_FUNCTION_NAME;
+
+  return persistent
+    ? { location: DB_PATH, persistent: true }
+    : { location: ":memory:", persistent: false };
+}
+
 function openDatabase(): DatabaseSync {
-  mkdirSync(dirname(DB_PATH), { recursive: true });
+  const { location, persistent } = resolveDbLocation();
 
-  const db = new DatabaseSync(DB_PATH);
+  if (persistent) {
+    mkdirSync(dirname(location), { recursive: true });
+  }
 
-  // WAL improves concurrent reads; foreign keys are off by default in SQLite and
-  // must be enabled per connection for ON DELETE CASCADE to apply.
-  db.exec("PRAGMA journal_mode = WAL");
+  const db = new DatabaseSync(location);
+
+  // WAL is meaningful only for a file-backed database; on an in-memory one the
+  // pragma is silently ignored, so it is skipped rather than relied upon.
+  if (persistent) {
+    db.exec("PRAGMA journal_mode = WAL");
+  }
+  // Foreign keys are off by default in SQLite and must be enabled per
+  // connection for ON DELETE CASCADE to apply.
   db.exec("PRAGMA foreign_keys = ON");
 
-  db.exec(readFileSync(SCHEMA_PATH, "utf8"));
+  db.exec(SCHEMA_SQL);
   seedIfEmpty(db);
 
   return db;
