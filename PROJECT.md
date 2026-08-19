@@ -30,7 +30,7 @@ list, no reason attached, and no repeatable process. See PROJECT-SCOPE.md.
 | Frontend | Next.js (App Router) + React + TypeScript |
 | Styling | Tailwind CSS v4, RTL, Cairo (self-hosted via next/font) |
 | Backend | Next.js Route Handlers (`app/api/**/route.ts`) |
-| Database | SQLite via `node:sqlite` (bundled with Node 24) |
+| Database | SQLite via `node:sqlite` (bundled with Node 22.5+) — file locally, in-memory on serverless |
 | Charts | Hand-built inline SVG components (no chart dependency) |
 | Version control | Git |
 | Deployment target | Vercel (requires Postgres/Supabase swap first — see README) |
@@ -181,12 +181,20 @@ Shared filter query parameters: `customerType`, `subscriptionType`, `package`,
 
 ## Deployment
 
-Not deployed. V1 is a locally verified build.
+Target: Vercel. **No environment variables are required** — the project holds no
+secrets.
 
-Before Vercel: replace SQLite with Supabase PostgreSQL (`lib/db/` only —
-serverless filesystems are read-only, so SQLite cannot persist there), add
-`NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` to Vercel, and
-re-run TEST-CHECKLIST.md against the deployed URL.
+Serverless filesystems are read-only, so the database runs in memory there and
+file-backed locally, detected automatically and overridable with `LTT_DB_MODE`.
+This is sound only because the dataset is deterministic, which makes every
+instance identical; `lib/db/README.md` records that as a load-bearing property.
+Supabase PostgreSQL therefore becomes necessary at the point this app needs to
+persist anything a user does, not before — the migration path is documented in the
+same file.
+
+After deploying, re-run TEST-CHECKLIST.md against the live URL. A Vercel
+deployment proves the development workflow; it does not approve this application
+for production telecom workloads.
 
 ## Current Status
 
